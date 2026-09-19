@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var monitor: ClipboardMonitor?
     private var pasteService: PasteService?
     private var statusItemController: StatusItemController?
+    private var searchPanelController: SearchPanelController?
     private var expiryTimer: Timer?
     private var defaultsObserver: NSObjectProtocol?
     private lazy var settingsWindowController = SettingsWindowController()
@@ -50,6 +51,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItemController.onShowSettings = { [weak self] in self?.showSettings() }
         statusItemController.onEditSnippets = { [weak self] in self?.showSnippetsEditor() }
 
+        let searchPanelController = SearchPanelController(
+            model: SearchModel(store: store, snippetStore: snippetStore),
+            store: store,
+            pasteService: pasteService
+        )
+        statusItemController.onSearch = { [weak searchPanelController] in searchPanelController?.show() }
+
         let hotKeys = HotKeyManager.shared
         hotKeys.handlers[.main] = { [weak statusItemController] combo in
             statusItemController?.popUpAtCursor(openedWith: combo)
@@ -59,6 +67,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         hotKeys.handlers[.snippets] = { [weak statusItemController] combo in
             statusItemController?.popUpSnippetsAtCursor(openedWith: combo)
+        }
+        hotKeys.handlers[.search] = { [weak searchPanelController] combo in
+            searchPanelController?.toggle(openedWith: combo)
         }
         hotKeys.start()
         for action in hotKeys.unavailable {
@@ -72,6 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.monitor = monitor
         self.pasteService = pasteService
         self.statusItemController = statusItemController
+        self.searchPanelController = searchPanelController
 
         removeExpiredClips()
         startExpiryTimer()

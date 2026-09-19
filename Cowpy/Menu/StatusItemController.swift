@@ -6,6 +6,7 @@ import AppKit
 final class StatusItemController: NSObject, NSMenuDelegate {
     var onShowSettings: (() -> Void)?
     var onEditSnippets: (() -> Void)?
+    var onSearch: (() -> Void)?
 
     private let store: HistoryStore
     private let snippetStore: SnippetStore
@@ -124,6 +125,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         guard includesAppCommands else { return }
 
         menu.addItem(.separator())
+        let searchItem = makeItem("Search…", action: #selector(search))
+        if let combo = HotKeyManager.shared.combos[.search] {
+            // Shown as a hint only; the real shortcut is the global one.
+            searchItem.title = "Search…  (\(combo.displayString))"
+        }
+        menu.addItem(searchItem)
         if !recent.isEmpty {
             menu.addItem(makeItem("Clear History…", action: #selector(clearHistory)))
         }
@@ -217,34 +224,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         if let text = clip.text {
             item.toolTip = String(text.prefix(500))
         }
-        item.image = image(for: clip)
+        item.image = ClipImage.image(for: clip, store: store)
         return item
-    }
-
-    private func image(for clip: Clip) -> NSImage? {
-        switch clip.kind {
-        case .image:
-            guard Defaults.showsThumbnails, let data = clip.thumbnail, let image = NSImage(data: data) else {
-                return nil
-            }
-            // Thumbnails are stored at 2x; cap the on-screen height to keep rows compact.
-            let maxHeight: CGFloat = 36
-            let scale = min(1, maxHeight / max(image.size.height, 1), 120 / max(image.size.width, 1))
-            image.size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
-            return image
-        case .files:
-            guard let path = store.content(of: clip)?.fileURLs.first?.path else { return nil }
-            let icon = NSWorkspace.shared.icon(forFile: path)
-            icon.size = NSSize(width: 16, height: 16)
-            return icon
-        case .text, .richText, .url:
-            guard Defaults.showsColorSwatches, let text = clip.text, let color = ColorParser.parse(text) else {
-                return nil
-            }
-            return ColorSwatch.image(for: color)
-        case .pdf:
-            return nil
-        }
     }
 
     private func makeItem(_ title: String, action: Selector, key: String = "") -> NSMenuItem {
@@ -278,6 +259,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func chooseSnippet(_ sender: NSMenuItem) {
         guard let snippet = sender.representedObject as? Snippet else { return }
         pasteService.paste(text: snippet.content)
+    }
+
+    @objc private func search() {
+        onSearch?()
     }
 
     @objc private func editSnippets() {

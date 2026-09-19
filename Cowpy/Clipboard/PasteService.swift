@@ -18,33 +18,37 @@ final class PasteService {
         self.pasteboard = pasteboard
     }
 
-    func paste(_ clip: Clip, plainTextOnly: Bool = false) {
+    /// - Parameter delay: extra time before ⌘V is sent. Menus need none; a
+    ///   panel that has just closed needs a moment for the target app's window
+    ///   to become key again.
+    func paste(_ clip: Clip, plainTextOnly: Bool = false, delay: TimeInterval = 0) {
         guard let content = store.content(of: clip) else { return }
 
         content.write(to: pasteboard, plainTextOnly: plainTextOnly)
         // We already know this clip; bump it instead of re-recording it.
         monitor.ignoreCurrentChange()
         store.touch(clip)
-        pasteIntoFrontmostApp()
+        pasteIntoFrontmostApp(after: delay)
     }
 
     /// Pastes a snippet. Snippets are not recorded in the history.
-    func paste(text: String) {
+    func paste(text: String, delay: TimeInterval = 0) {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         monitor.ignoreCurrentChange()
-        pasteIntoFrontmostApp()
+        pasteIntoFrontmostApp(after: delay)
     }
 
-    private func pasteIntoFrontmostApp() {
+    private func pasteIntoFrontmostApp(after delay: TimeInterval) {
         guard Defaults.pastesAutomatically else { return }
 
         let shouldPrompt = !hasPromptedForAccessibility
         hasPromptedForAccessibility = true
         guard AccessibilityPermission.isTrusted(prompt: shouldPrompt) else { return }
 
-        // Let the menu finish closing so the keystroke lands in the target app.
-        DispatchQueue.main.async {
+        // Even with no delay, wait a run-loop turn so the menu finishes
+        // closing and the keystroke lands in the target app.
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             Self.postCommandV()
         }
     }

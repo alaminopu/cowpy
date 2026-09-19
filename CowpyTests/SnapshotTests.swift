@@ -60,6 +60,35 @@ struct SnapshotTests {
         )
     }
 
+    @Test(.enabled(if: directory != nil))
+    func searchPanel() throws {
+        Defaults.register()
+        let store = try HistoryStore(inMemory: true)
+        let snippets = try SnippetStore(inMemory: true)
+        let base = Date(timeIntervalSinceReferenceDate: 0)
+        let texts = ["git commit --amend --no-edit", "#ff8800", "https://github.com/alaminopu/cowpy", "A much longer clip that will certainly need to be truncated because it goes on and on and on past the edge"]
+        for (index, text) in texts.enumerated() {
+            store.add(ClipContent(text: text), date: base.addingTimeInterval(Double(index)))
+        }
+        store.add(ClipContent(fileURLs: [URL(fileURLWithPath: "/Applications/Safari.app")]), date: base.addingTimeInterval(10))
+        if let pinned = store.add(ClipContent(text: "Pinned: my address"), date: base.addingTimeInterval(11)) {
+            store.setPinned(true, for: pinned)
+        }
+        snippets.addSnippet(title: "Sign-off", content: "Best regards", to: snippets.addFolder(title: "Mail"))
+
+        let model = SearchModel(store: store, snippetStore: snippets)
+        model.beginSession()
+        model.moveSelection(by: 2)
+        let size = NSSize(width: 580, height: 420)
+        try snapshot(SearchView(model: model) { _ in }, named: "search-all", size: size)
+
+        model.query = "co"
+        try snapshot(SearchView(model: model) { _ in }, named: "search-filtered", size: size)
+
+        model.query = "zzz"
+        try snapshot(SearchView(model: model) { _ in }, named: "search-empty", size: size)
+    }
+
     private func snapshot(_ view: some View, named name: String, size: NSSize = NSSize(width: 500, height: 540)) throws {
         let directory = try #require(Self.directory)
         let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height))

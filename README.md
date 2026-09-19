@@ -10,6 +10,7 @@ Swift with no third-party dependencies, no analytics and no network access.
 
 - History of text, rich text, links, images, PDFs and files
 - ⇧⌘V opens the history at the cursor; press `1`–`9`/`0` to pick. Shortcuts are customisable
+- ⌃⌘V opens a search panel: type to filter clips and snippets, ↩ to paste, ⌘1–9 to quick-paste
 - Pastes straight into the active app
 - Hold a key while choosing a clip: ⌥ plain text · ⇧ pin/unpin · ⌃ remove · ⌃⌥ paste then remove
 - Pinned clips stay at the top and are never trimmed or cleared

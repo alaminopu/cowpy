@@ -33,6 +33,7 @@ private final class FakeRegistrar: HotKeyRegistering {
 struct HotKeyManagerTests {
     private let shiftCommandV = KeyCombo(keyCode: UInt32(kVK_ANSI_V), carbonModifiers: UInt32(cmdKey | shiftKey))
     private let shiftCommandB = KeyCombo(keyCode: UInt32(kVK_ANSI_B), carbonModifiers: UInt32(cmdKey | shiftKey))
+    private let controlCommandV = KeyCombo(keyCode: UInt32(kVK_ANSI_V), carbonModifiers: UInt32(cmdKey | controlKey))
     private let controlOptionC = KeyCombo(keyCode: UInt32(kVK_ANSI_C), carbonModifiers: UInt32(controlKey | optionKey))
 
     private func makeDefaults() -> UserDefaults {
@@ -47,8 +48,8 @@ struct HotKeyManagerTests {
         let manager = HotKeyManager(registrar: registrar, defaults: makeDefaults())
         manager.start()
 
-        #expect(manager.combos == [.main: shiftCommandV, .snippets: shiftCommandB])
-        #expect(Set(registrar.registered.values) == [shiftCommandV, shiftCommandB])
+        #expect(manager.combos == [.main: shiftCommandV, .snippets: shiftCommandB, .search: controlCommandV])
+        #expect(Set(registrar.registered.values) == [shiftCommandV, shiftCommandB, controlCommandV])
         #expect(manager.unavailable.isEmpty)
     }
 
@@ -76,8 +77,8 @@ struct HotKeyManagerTests {
         let second = HotKeyManager(registrar: registrar, defaults: defaults)
         second.start()
 
-        #expect(second.combos == [.main: controlOptionC], "a cleared shortcut must stay cleared, not fall back to its default")
-        #expect(Array(registrar.registered.values) == [controlOptionC])
+        #expect(second.combos == [.main: controlOptionC, .search: controlCommandV], "a cleared shortcut must stay cleared, not fall back to its default")
+        #expect(Set(registrar.registered.values) == [controlOptionC, controlCommandV])
     }
 
     @Test func refusesACombinationAnotherActionUses() {
@@ -123,7 +124,7 @@ struct HotKeyManagerTests {
         #expect(registrar.registered.isEmpty)
 
         manager.resume()
-        #expect(Set(registrar.registered.values) == [controlOptionC, shiftCommandB])
+        #expect(Set(registrar.registered.values) == [controlOptionC, shiftCommandB, controlCommandV])
     }
 
     @Test func restoreDefaultsForgetsCustomisation() {
@@ -136,8 +137,8 @@ struct HotKeyManagerTests {
 
         manager.restoreDefaults()
 
-        #expect(manager.combos == [.main: shiftCommandV, .snippets: shiftCommandB])
-        #expect(Set(registrar.registered.values) == [shiftCommandV, shiftCommandB])
+        #expect(manager.combos == [.main: shiftCommandV, .snippets: shiftCommandB, .search: controlCommandV])
+        #expect(Set(registrar.registered.values) == [shiftCommandV, shiftCommandB, controlCommandV])
         #expect(defaults.data(forKey: HotKeyAction.main.defaultsKey) == nil)
     }
 }

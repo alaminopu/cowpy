@@ -46,6 +46,7 @@ main.swift ─ AppDelegate ─┬─ ClipboardMonitor ──(ClipContent)──�
 | Clip actions | `Menu/ClipAction.swift` | Maps held modifiers to an action. Exact-match only, and ⌘/⇧ never remove anything, because the ⇧⌘V hotkey often leaves those keys down. |
 | Colours | `Menu/ColorSwatch.swift` | `ColorParser` (requires `#` so one-time codes are not mistaken for colours) and the swatch image. |
 | Icon | `Menu/CowIcon.swift` | Template glyph drawn in code. |
+| Search | `Search/` | `SearchPanelController` (non-activating `NSPanel`, AppKit key monitor mapped through `SearchKey`), `SearchModel` (`@Observable` query/results/selection), `SearchFilter` (pure matching), `SearchView` (SwiftUI). |
 | Snippets | `Snippets/` | `SnippetStore` (separate SwiftData container), `SnippetArchive` (Clipy-compatible XML), `SnippetsEditorView` (SwiftUI, `@Query` + `@Bindable` straight onto the models). |
 | Hotkeys | `HotKeys/` | `HotKeyCenter` wraps `RegisterEventHotKey` (no permission required). `HotKeyManager` owns the user's choices, persistence and conflicts, and talks to the centre through `HotKeyRegistering` so tests use a fake. `KeyboardLayout` translates key codes for the current layout. |
 | Preferences | `App/Defaults.swift`, `Settings/` | One set of keys shared by services (`Defaults`) and views (`@AppStorage`). |
@@ -94,9 +95,14 @@ main.swift ─ AppDelegate ─┬─ ClipboardMonitor ──(ClipContent)──�
 - [ ] **Manually verify** recording a shortcut, the leftover-modifier behaviour and an ignored app
 - [ ] Per-snippet-folder shortcuts
 
-### M5 — Search
-- [ ] Type-to-filter panel (floating `NSPanel` + SwiftUI list) as an alternative to the menu
-- [ ] Full-text search over `Clip.text`
+### M5 — Search (built, needs a hands-on check)
+- [x] Floating search panel on ⌃⌘V (customisable) and from "Search…" in the menu-bar menu; non-activating, so the app you were in stays frontmost and receives the paste
+- [x] Filters clips (pinned first) and enabled snippets as you type; every term must match, ignoring case, accents and width
+- [x] Keyboard: ↑↓/Page keys move, ↩ pastes, ⌘1–9 quick-paste, ⎋ clears the query then closes; the same modifier actions as the menu (⌥ plain, ⇧ pin, ⌃ remove, ⌃⌥ paste then remove)
+- [x] Closes when it loses focus; input-method composition keeps its Return and arrow keys
+- [ ] **Manually verify** focus on open, typing, pasting into the previous app, and click-outside to dismiss
+- [ ] Move to SQLite FTS if histories grow past a few thousand clips (in-memory filtering is instant at the current 1,000-clip cap)
+- [ ] Preview pane for the selected clip (full text, full-size image)
 
 ### M6 — Ship
 - [ ] App icon (full-colour cow)
@@ -110,8 +116,9 @@ main.swift ─ AppDelegate ─┬─ ClipboardMonitor ──(ClipContent)──�
 1. **Sandbox / Mac App Store.** Synthesising ⌘V and the Accessibility prompt are
    the friction points. Staying unsandboxed keeps M1–M5 simple; revisit at M6.
 2. **SwiftData vs GRDB.** SwiftData keeps dependencies at zero and is plenty for
-   a few thousand rows. If search (M5) needs FTS5, move `HistoryStore` to GRDB —
-   it is the only type that touches SwiftData besides the `Clip` model.
+   a few thousand rows; search filters in memory. If the history cap is ever
+   raised enough to need FTS5, move `HistoryStore` to GRDB — it is the only
+   type that touches SwiftData besides the `Clip` model.
 3. **Name.** "Cowpy" was clear in a web search on 2026-09-19; App Store name
    reservation, trademark and domain have not been checked.
 

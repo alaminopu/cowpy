@@ -7,6 +7,7 @@ nonisolated enum HotKeyAction: String, CaseIterable, Identifiable, Sendable {
     case main
     case history
     case snippets
+    case search
 
     var id: String { rawValue }
 
@@ -15,15 +16,18 @@ nonisolated enum HotKeyAction: String, CaseIterable, Identifiable, Sendable {
         case .main: "Open clips and snippets"
         case .history: "Open clips only"
         case .snippets: "Open snippets only"
+        case .search: "Search clips and snippets"
         }
     }
 
     /// ⇧⌘V and ⇧⌘B are Clipy's defaults, so muscle memory carries over.
+    /// Search sits next to them on ⌃⌘V.
     var defaultCombo: KeyCombo? {
         switch self {
         case .main: KeyCombo(keyCode: UInt32(kVK_ANSI_V), carbonModifiers: UInt32(cmdKey | shiftKey))
         case .history: nil
         case .snippets: KeyCombo(keyCode: UInt32(kVK_ANSI_B), carbonModifiers: UInt32(cmdKey | shiftKey))
+        case .search: KeyCombo(keyCode: UInt32(kVK_ANSI_V), carbonModifiers: UInt32(cmdKey | controlKey))
         }
     }
 
