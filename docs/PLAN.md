@@ -24,7 +24,7 @@ the cursor with a hotkey, plus reusable snippets. No Clipy code is reused.
 | Minimum macOS | 14.0 (SwiftData, `SMAppService`, Observation) |
 | Toolchain | Xcode 27 / Swift 6 language mode |
 | Bundle ID | `com.alamin.Cowpy` |
-| Distribution | Direct download (Developer ID + notarisation). Not sandboxed for now. |
+| Distribution | Direct download as a DMG (`scripts/make-dmg.sh`); Developer ID + notarisation once there is a paid developer account. Not sandboxed. |
 
 ## Architecture
 
@@ -104,11 +104,18 @@ main.swift ─ AppDelegate ─┬─ ClipboardMonitor ──(ClipContent)──�
 - [ ] Move to SQLite FTS if histories grow past a few thousand clips (in-memory filtering is instant at the current 1,000-clip cap)
 - [ ] Preview pane for the selected clip (full text, full-size image)
 
-### M6 — Ship
-- [ ] App icon (full-colour cow)
-- [ ] Developer ID signing, notarisation, DMG
-- [ ] Sparkle 2 for updates (first third-party dependency)
-- [ ] Decide licence; localisation via String Catalogs
+### M6 — Ship (first release out)
+- [x] App icon: a full-colour cow, drawn by `scripts/generate-icon.swift` (re-run it to regenerate every size)
+- [x] `scripts/make-dmg.sh`: drag-to-install disk image in `dist/`. Uses a Developer ID certificate and notarises when available, otherwise signs ad hoc. Never uses the personal Apple Development certificate, which would embed the owner's Apple ID email in every copy
+- [x] About panel (from the menu-bar menu) with version and project link
+- [x] MIT licence
+- [x] Homebrew: the repository doubles as a tap (`Casks/cowpy.rb`), so no separate tap repository is needed. The cask strips the quarantine flag after install, which is the workaround for not being notarised
+- [x] `scripts/release.sh`: disk image → GitHub release → cask version and checksum
+- [ ] Stable signing identity for releases. Ad-hoc builds lose the Accessibility grant on every update. Without a paid account the fix is a self-signed code-signing certificate reused for every release (the grant follows the certificate, trusted or not)
+- [ ] Developer ID + notarisation if a paid Apple Developer account ever happens; `make-dmg.sh` already handles it
+- [ ] In-app update notice. Sparkle would be the first third-party dependency; `brew upgrade` covers updates for now
+- [ ] A dedicated `homebrew-tap` repository would shorten the install to one line (`brew install --cask alaminopu/tap/cowpy`)
+- [ ] Localisation via String Catalogs
 - [ ] Optional: import history from Clipy
 
 ## Open decisions

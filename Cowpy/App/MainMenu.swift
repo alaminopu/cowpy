@@ -3,20 +3,21 @@ import AppKit
 /// Cowpy has no Dock icon, but it still needs a main menu: without an Edit
 /// menu, ⌘C/⌘V/⌘A do not work in the settings window's text fields.
 enum MainMenu {
-    static func make(settingsTarget: AnyObject, settingsAction: Selector) -> NSMenu {
+    static func make(target: AnyObject, settingsAction: Selector, aboutAction: Selector) -> NSMenu {
         let mainMenu = NSMenu()
-        mainMenu.addItem(submenuItem(appMenu(settingsTarget: settingsTarget, settingsAction: settingsAction)))
+        mainMenu.addItem(submenuItem(appMenu(target: target, settingsAction: settingsAction, aboutAction: aboutAction)))
         mainMenu.addItem(submenuItem(editMenu()))
         mainMenu.addItem(submenuItem(windowMenu()))
         return mainMenu
     }
 
-    private static func appMenu(settingsTarget: AnyObject, settingsAction: Selector) -> NSMenu {
+    private static func appMenu(target: AnyObject, settingsAction: Selector, aboutAction: Selector) -> NSMenu {
         let menu = NSMenu(title: "Cowpy")
-        menu.addItem(withTitle: "About Cowpy", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let about = menu.addItem(withTitle: "About Cowpy", action: aboutAction, keyEquivalent: "")
+        about.target = target
         menu.addItem(.separator())
         let settings = menu.addItem(withTitle: "Settings…", action: settingsAction, keyEquivalent: ",")
-        settings.target = settingsTarget
+        settings.target = target
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Cowpy", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         return menu

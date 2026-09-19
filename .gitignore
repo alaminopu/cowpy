@@ -5,3 +5,4 @@ DerivedData/
 xcuserdata/
 *.xcodeproj/project.xcworkspace/xcuserdata/
 .swiftpm/
+dist/

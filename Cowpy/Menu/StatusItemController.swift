@@ -7,6 +7,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     var onShowSettings: (() -> Void)?
     var onEditSnippets: (() -> Void)?
     var onSearch: (() -> Void)?
+    var onShowAbout: (() -> Void)?
 
     private let store: HistoryStore
     private let snippetStore: SnippetStore
@@ -137,6 +138,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(makeItem("Edit Snippets…", action: #selector(editSnippets)))
         menu.addItem(makeItem("Settings…", action: #selector(showSettings), key: ","))
         menu.addItem(.separator())
+        menu.addItem(makeItem("About Cowpy", action: #selector(showAbout)))
         menu.addItem(makeItem("Quit Cowpy", action: #selector(quit), key: "q"))
     }
 
@@ -295,6 +297,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func showSettings() {
         onShowSettings?()
+    }
+
+    @objc private func showAbout() {
+        onShowAbout?()
     }
 
     @objc private func quit() {

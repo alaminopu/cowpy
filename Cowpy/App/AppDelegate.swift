@@ -24,7 +24,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !isRunningTests else { return }
 
         Defaults.register()
-        NSApp.mainMenu = MainMenu.make(settingsTarget: self, settingsAction: #selector(showSettings))
+        NSApp.mainMenu = MainMenu.make(
+            target: self,
+            settingsAction: #selector(showSettings),
+            aboutAction: #selector(showAbout)
+        )
 
         let store: HistoryStore
         let snippetStore: SnippetStore
@@ -56,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             store: store,
             pasteService: pasteService
         )
+        statusItemController.onShowAbout = { [weak self] in self?.showAbout() }
         statusItemController.onSearch = { [weak searchPanelController] in searchPanelController?.show() }
 
         let hotKeys = HotKeyManager.shared
@@ -111,6 +116,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func showSettings() {
         settingsWindowController.show()
+    }
+
+    @objc func showAbout() {
+        let credits = NSMutableAttributedString(
+            string: "A small clipboard manager for macOS.\nInspired by Clipy. No analytics, no network access.\n",
+            attributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize), .foregroundColor: NSColor.secondaryLabelColor]
+        )
+        let link = "https://github.com/alaminopu/cowpy"
+        credits.append(NSAttributedString(
+            string: link,
+            attributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize), .link: URL(string: link) as Any]
+        ))
+        let centered = NSMutableParagraphStyle()
+        centered.alignment = .center
+        credits.addAttribute(.paragraphStyle, value: centered, range: NSRange(location: 0, length: credits.length))
+
+        // Agent apps are never frontmost on their own.
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
     }
 
     func showSnippetsEditor() {
