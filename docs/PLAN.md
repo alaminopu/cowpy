@@ -46,6 +46,7 @@ main.swift ─ AppDelegate ─┬─ ClipboardMonitor ──(ClipContent)──�
 | Clip actions | `Menu/ClipAction.swift` | Maps held modifiers to an action. Exact-match only, and ⌘/⇧ never remove anything, because the ⇧⌘V hotkey often leaves those keys down. |
 | Colours | `Menu/ColorSwatch.swift` | `ColorParser` (requires `#` so one-time codes are not mistaken for colours) and the swatch image. |
 | Icon | `Menu/CowIcon.swift` | Template glyph drawn in code. |
+| Snippets | `Snippets/` | `SnippetStore` (separate SwiftData container), `SnippetArchive` (Clipy-compatible XML), `SnippetsEditorView` (SwiftUI, `@Query` + `@Bindable` straight onto the models). |
 | Hotkeys | `HotKeys/HotKeyCenter.swift` | `RegisterEventHotKey`; no permission required. |
 | Preferences | `App/Defaults.swift`, `Settings/` | One set of keys shared by services (`Defaults`) and views (`@AppStorage`). |
 
@@ -73,11 +74,15 @@ main.swift ─ AppDelegate ─┬─ ClipboardMonitor ──(ClipContent)──�
 - [ ] **Manually verify** the modifier actions, pinned section and Clear History alert
 - [ ] Make the modifier mapping configurable (fixed for now)
 
-### M3 — Snippets
-- [ ] `SnippetFolder` / `Snippet` models, ordered, enable/disable
-- [ ] Snippets section in the main menu + dedicated snippets hotkey (⇧⌘B)
-- [ ] Editor window (SwiftUI `NavigationSplitView`, drag to reorder)
-- [ ] Import / export (Clipy's XML format for easy migration)
+### M3 — Snippets (built, needs a hands-on check)
+- [x] `SnippetFolder` / `Snippet` models, ordered, enable/disable — in their own `Snippets.store`, so clearing or migrating history can never touch them
+- [x] Snippets section (one submenu per folder) in the menu-bar menu and the ⇧⌘V pop-up
+- [x] Snippets-only pop-up on ⇧⌘B
+- [x] Editor window: split view, add/delete, drag to reorder snippets, Move Up/Down for folders, confirmation before deleting a non-empty folder
+- [x] Import / export in Clipy's XML format (import appends, never replaces)
+- [x] Pasting a snippet does not add it to the history
+- [ ] **Manually verify** the editor, both pop-ups and an import from Clipy
+- [ ] Placeholders in snippets (date, clipboard contents, cursor position)
 
 ### M4 — Shortcuts & exclusions
 - [ ] Shortcut recorder UI; separate combos for main / history / snippets / per-folder
@@ -108,10 +113,15 @@ main.swift ─ AppDelegate ─┬─ ClipboardMonitor ──(ClipContent)──�
 
 - The project uses Xcode's folder-synchronised groups: add a file under
   `Cowpy/` or `CowpyTests/` and it is part of the target, no project edits.
-- Builds are ad-hoc signed (`CODE_SIGN_IDENTITY = "-"`). macOS ties the
-  Accessibility grant to the code signature, so **every rebuild invalidates
-  it** and auto-paste silently stops until you re-grant. Set your
-  `DEVELOPMENT_TEAM` in the target's Signing settings to make the grant stick.
+- `scripts/install.sh` builds Release, installs to `/Applications` and
+  relaunches. macOS ties the Accessibility grant to the code signature, so an
+  ad-hoc signed build loses it on **every reinstall** (System Settings still
+  shows the toggle on, but it belongs to the old build; `tccutil reset
+  Accessibility com.alamin.Cowpy` clears the stale entry). The script signs
+  with an "Apple Development" certificate when the keychain has one — a free
+  Apple ID in Xcode is enough — which keeps the grant. The team ID is passed on
+  the command line, so it never lands in the repository.
+- Cowpy asks for the Accessibility permission at most once per launch.
 - There is no UI test target. To eyeball the settings panes, run the opt-in
   snapshot tests, which write PNGs to a directory of your choice:
   `TEST_RUNNER_COWPY_SNAPSHOT_DIR=/some/dir xcodebuild … test -only-testing:CowpyTests/SnapshotTests`

@@ -1,18 +1,23 @@
 import AppKit
 
-/// Owns the menu-bar item and builds the two menus: the menu-bar menu (history
-/// plus app commands) and the hotkey pop-up at the cursor (history only).
+/// Owns the menu-bar item and builds the menus: the menu-bar menu (clips,
+/// snippets and app commands), the ⇧⌘V pop-up at the cursor (clips and
+/// snippets) and the ⇧⌘B pop-up (snippets only).
 final class StatusItemController: NSObject, NSMenuDelegate {
     var onShowSettings: (() -> Void)?
+    var onEditSnippets: (() -> Void)?
 
     private let store: HistoryStore
+    private let snippetStore: SnippetStore
     private let pasteService: PasteService
     private let statusItem: NSStatusItem
     private let statusMenu = NSMenu()
     private let popUpMenu = NSMenu()
+    private let snippetsPopUpMenu = NSMenu()
 
-    init(store: HistoryStore, pasteService: PasteService) {
+    init(store: HistoryStore, snippetStore: SnippetStore, pasteService: PasteService) {
         self.store = store
+        self.snippetStore = snippetStore
         self.pasteService = pasteService
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
@@ -20,6 +25,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         statusMenu.delegate = self
         statusMenu.autoenablesItems = false
         popUpMenu.autoenablesItems = false
+        snippetsPopUpMenu.autoenablesItems = false
         statusItem.menu = statusMenu
         statusItem.button?.image = CowIcon.image()
         statusItem.button?.toolTip = "Cowpy"
@@ -40,6 +46,20 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         // Settings and Quit live in the menu-bar menu only.
         populate(popUpMenu, includesAppCommands: false)
         popUpMenu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+    }
+
+    func popUpSnippetsAtCursor() {
+        let menu = snippetsPopUpMenu
+        menu.removeAllItems()
+        if !addSnippetItems(to: menu, withHeader: false) {
+            let empty = NSMenuItem(title: "No snippets yet", action: nil, keyEquivalent: "")
+            empty.isEnabled = false
+            menu.addItem(empty)
+            // The one app command allowed in a pop-up: without it an empty
+            // snippets menu would be a dead end.
+            menu.addItem(makeItem("Edit Snippets…", action: #selector(editSnippets)))
+        }
+        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
     }
 
     // MARK: - NSMenuDelegate
@@ -63,12 +83,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         } else {
             addClipItems(pinned: pinned, recent: recent, to: menu)
         }
+        addSnippetItems(to: menu, withHeader: true)
         guard includesAppCommands else { return }
 
         menu.addItem(.separator())
         if !recent.isEmpty {
             menu.addItem(makeItem("Clear History…", action: #selector(clearHistory)))
         }
+        menu.addItem(makeItem("Edit Snippets…", action: #selector(editSnippets)))
         menu.addItem(makeItem("Settings…", action: #selector(showSettings), key: ","))
         menu.addItem(.separator())
         menu.addItem(makeItem("Quit Cowpy", action: #selector(quit), key: "q"))
@@ -113,6 +135,36 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             menu.addItem(folder)
             start = end
         }
+    }
+
+    /// One submenu per enabled folder. Returns whether anything was added.
+    @discardableResult
+    private func addSnippetItems(to menu: NSMenu, withHeader: Bool) -> Bool {
+        let folders = snippetStore.menuFolders()
+        guard !folders.isEmpty else { return false }
+
+        if withHeader {
+            menu.addItem(.separator())
+            menu.addItem(.sectionHeader(title: "Snippets"))
+        }
+        for (folder, snippets) in folders {
+            let folderItem = NSMenuItem(title: folder.title, action: nil, keyEquivalent: "")
+            folderItem.image = NSImage(systemSymbolName: "folder", accessibilityDescription: nil)
+            let submenu = NSMenu()
+            submenu.autoenablesItems = false
+            for snippet in snippets {
+                let item = makeItem(
+                    Self.truncate(snippet.menuTitle, to: Defaults.maxTitleLength),
+                    action: #selector(chooseSnippet(_:))
+                )
+                item.representedObject = snippet
+                item.toolTip = String(snippet.content.prefix(500))
+                submenu.addItem(item)
+            }
+            folderItem.submenu = submenu
+            menu.addItem(folderItem)
+        }
+        return true
     }
 
     private func makeClipItem(_ clip: Clip, number: Int) -> NSMenuItem {
@@ -184,6 +236,15 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         case .delete:
             store.delete(clip)
         }
+    }
+
+    @objc private func chooseSnippet(_ sender: NSMenuItem) {
+        guard let snippet = sender.representedObject as? Snippet else { return }
+        pasteService.paste(text: snippet.content)
+    }
+
+    @objc private func editSnippets() {
+        onEditSnippets?()
     }
 
     @objc private func clearHistory() {

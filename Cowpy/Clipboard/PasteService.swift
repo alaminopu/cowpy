@@ -7,6 +7,10 @@ final class PasteService {
     private let store: HistoryStore
     private let monitor: ClipboardMonitor
     private let pasteboard: NSPasteboard
+    /// The system Accessibility prompt is shown at most once per launch. If the
+    /// grant is missing or stale, asking again on every paste only gets in the
+    /// way; the clip is on the pasteboard either way and Settings shows a warning.
+    private var hasPromptedForAccessibility = false
 
     init(store: HistoryStore, monitor: ClipboardMonitor, pasteboard: NSPasteboard = .general) {
         self.store = store
@@ -21,9 +25,23 @@ final class PasteService {
         // We already know this clip; bump it instead of re-recording it.
         monitor.ignoreCurrentChange()
         store.touch(clip)
+        pasteIntoFrontmostApp()
+    }
 
+    /// Pastes a snippet. Snippets are not recorded in the history.
+    func paste(text: String) {
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        monitor.ignoreCurrentChange()
+        pasteIntoFrontmostApp()
+    }
+
+    private func pasteIntoFrontmostApp() {
         guard Defaults.pastesAutomatically else { return }
-        guard AccessibilityPermission.isTrusted(prompt: true) else { return }
+
+        let shouldPrompt = !hasPromptedForAccessibility
+        hasPromptedForAccessibility = true
+        guard AccessibilityPermission.isTrusted(prompt: shouldPrompt) else { return }
 
         // Let the menu finish closing so the keystroke lands in the target app.
         DispatchQueue.main.async {

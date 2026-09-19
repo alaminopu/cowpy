@@ -3,6 +3,8 @@ import OSLog
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var store: HistoryStore?
+    private var snippetStore: SnippetStore?
+    private var snippetsWindowController: SnippetsWindowController?
     private var monitor: ClipboardMonitor?
     private var pasteService: PasteService?
     private var statusItemController: StatusItemController?
@@ -24,10 +26,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = MainMenu.make(settingsTarget: self, settingsAction: #selector(showSettings))
 
         let store: HistoryStore
+        let snippetStore: SnippetStore
         do {
             store = try HistoryStore()
+            snippetStore = try SnippetStore()
         } catch {
-            presentFatalError("Cowpy could not open its history database.", error: error)
+            presentFatalError("Cowpy could not open its database.", error: error)
             return
         }
 
@@ -38,19 +42,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let pasteService = PasteService(store: store, monitor: monitor)
-        let statusItemController = StatusItemController(store: store, pasteService: pasteService)
+        let statusItemController = StatusItemController(
+            store: store,
+            snippetStore: snippetStore,
+            pasteService: pasteService
+        )
         statusItemController.onShowSettings = { [weak self] in self?.showSettings() }
+        statusItemController.onEditSnippets = { [weak self] in self?.showSnippetsEditor() }
 
-        let token = HotKeyCenter.shared.register(.defaultMainMenu) { [weak statusItemController] in
+        let mainToken = HotKeyCenter.shared.register(.defaultMainMenu) { [weak statusItemController] in
             statusItemController?.popUpAtCursor()
         }
-        if token == nil {
-            log.warning("⇧⌘V is already taken by another app; the global hotkey is disabled.")
+        if mainToken == nil {
+            log.warning("⇧⌘V is already taken by another app; the history hotkey is disabled.")
+        }
+        let snippetsToken = HotKeyCenter.shared.register(.defaultSnippetsMenu) { [weak statusItemController] in
+            statusItemController?.popUpSnippetsAtCursor()
+        }
+        if snippetsToken == nil {
+            log.warning("⇧⌘B is already taken by another app; the snippets hotkey is disabled.")
         }
 
         monitor.start()
 
         self.store = store
+        self.snippetStore = snippetStore
         self.monitor = monitor
         self.pasteService = pasteService
         self.statusItemController = statusItemController
@@ -62,6 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         monitor?.stop()
+        snippetStore?.save()
         if Defaults.clearsHistoryOnQuit {
             store?.clear()
         }
@@ -76,6 +93,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func showSettings() {
         settingsWindowController.show()
+    }
+
+    func showSnippetsEditor() {
+        guard let snippetStore else { return }
+        if snippetsWindowController == nil {
+            snippetsWindowController = SnippetsWindowController(store: snippetStore)
+        }
+        snippetsWindowController?.show()
     }
 
     // MARK: - Settings changes

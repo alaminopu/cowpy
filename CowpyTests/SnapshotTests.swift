@@ -32,6 +32,33 @@ struct SnapshotTests {
         try snapshot(row, named: "swatches", size: NSSize(width: 520, height: 50))
     }
 
+    @Test(.enabled(if: directory != nil))
+    func snippetsEditor() throws {
+        let store = try SnippetStore(inMemory: true)
+        let mail = store.addFolder(title: "Mail")
+        let signOff = store.addSnippet(title: "Sign-off", content: "Best regards,\nAl Amin\n\n-- \nSent with Cowpy 🐮", to: mail)
+        store.addSnippet(title: "Out of office", content: "I am away until Monday.", to: mail)
+        store.addSnippet(title: "Disabled one", content: "hidden", to: mail).isEnabled = false
+        let code = store.addFolder(title: "Code")
+        store.addSnippet(title: "", content: "console.log('moo')", to: code)
+
+        let size = NSSize(width: 760, height: 480)
+        try snapshot(
+            SnippetsEditorView(store: store, initialSelection: .snippet(signOff.persistentModelID))
+                .modelContainer(store.container),
+            named: "snippets-snippet", size: size
+        )
+        try snapshot(
+            SnippetsEditorView(store: store, initialSelection: .folder(code.persistentModelID))
+                .modelContainer(store.container),
+            named: "snippets-folder", size: size
+        )
+        try snapshot(
+            SnippetsEditorView(store: try SnippetStore(inMemory: true)).modelContainer(try SnippetStore(inMemory: true).container),
+            named: "snippets-empty", size: size
+        )
+    }
+
     private func snapshot(_ view: some View, named name: String, size: NSSize = NSSize(width: 500, height: 540)) throws {
         let directory = try #require(Self.directory)
         let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height))

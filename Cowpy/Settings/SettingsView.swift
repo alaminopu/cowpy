@@ -43,6 +43,7 @@ struct GeneralSettingsView: View {
                 }
                 Toggle("Show Cowpy in the menu bar", isOn: $showsStatusItem)
                 LabeledContent("Open history", value: "⇧⌘V")
+                LabeledContent("Open snippets", value: "⇧⌘B")
             } footer: {
                 if !showsStatusItem {
                     Text("The shortcut still works. To get back to Settings, open Cowpy again from Applications or Spotlight.")

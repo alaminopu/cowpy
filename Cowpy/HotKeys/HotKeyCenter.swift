@@ -8,6 +8,9 @@ nonisolated struct KeyCombo: Codable, Equatable, Sendable {
 
     /// ⇧⌘V, the same default Clipy uses for its main menu.
     static let defaultMainMenu = KeyCombo(keyCode: UInt32(kVK_ANSI_V), carbonModifiers: UInt32(cmdKey | shiftKey))
+
+    /// ⇧⌘B, Clipy's default for the snippets menu.
+    static let defaultSnippetsMenu = KeyCombo(keyCode: UInt32(kVK_ANSI_B), carbonModifiers: UInt32(cmdKey | shiftKey))
 }
 
 /// System-wide hotkeys via Carbon's `RegisterEventHotKey`, which is still the

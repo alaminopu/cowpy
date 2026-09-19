@@ -13,6 +13,8 @@ Swift with no third-party dependencies, no analytics and no network access.
 - Pastes straight into the active app
 - Hold a key while choosing a clip: ⌥ plain text · ⇧ pin/unpin · ⌃ remove · ⌃⌥ paste then remove
 - Pinned clips stay at the top and are never trimmed or cleared
+- Snippets: folders of text you paste often, in the menu and on ⇧⌘B, with an
+  editor and Clipy-compatible import/export
 - Image thumbnails, file icons, colour swatches, numbered submenus for long histories
 - Skips passwords and other concealed content; choose which kinds of data are recorded
 - History size limit, optional expiry, clear on quit
@@ -35,10 +37,13 @@ open build/Build/Products/Debug/Cowpy.app
 xcodebuild -project Cowpy.xcodeproj -scheme Cowpy -derivedDataPath build test
 ```
 
+To install into `/Applications` and relaunch: `scripts/install.sh`.
+
 Or open `Cowpy.xcodeproj` and run. Cowpy has no Dock icon — look for the cow in
 the menu bar.
 
 Auto-paste needs the Accessibility permission (System Settings → Privacy &
-Security → Accessibility). With the default ad-hoc signing that grant is lost
-on every rebuild; set your development team in the target's Signing settings to
-keep it.
+Security → Accessibility). An ad-hoc signed build loses that grant on every
+reinstall. Add your Apple ID in Xcode (a free one works) and create an Apple
+Development certificate; `scripts/install.sh` then signs with it and the grant
+sticks.
