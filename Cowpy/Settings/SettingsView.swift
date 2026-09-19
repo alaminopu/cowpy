@@ -6,6 +6,8 @@ struct SettingsView: View {
         TabView {
             GeneralSettingsView()
                 .tabItem { Label("General", systemImage: "gearshape") }
+            ShortcutsSettingsView()
+                .tabItem { Label("Shortcuts", systemImage: "keyboard") }
             MenuSettingsView()
                 .tabItem { Label("Menu", systemImage: "filemenu.and.selection") }
             HistorySettingsView()
@@ -42,11 +44,9 @@ struct GeneralSettingsView: View {
                         .foregroundStyle(.red)
                 }
                 Toggle("Show Cowpy in the menu bar", isOn: $showsStatusItem)
-                LabeledContent("Open history", value: "⇧⌘V")
-                LabeledContent("Open snippets", value: "⇧⌘B")
             } footer: {
                 if !showsStatusItem {
-                    Text("The shortcut still works. To get back to Settings, open Cowpy again from Applications or Spotlight.")
+                    Text("Your shortcuts still work. To get back to Settings, open Cowpy again from Applications or Spotlight.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -172,6 +172,7 @@ struct CaptureSettingsView: View {
                 Toggle("PDFs", isOn: $capturesPDFs)
                 Toggle("Files and folders", isOn: $capturesFiles)
             }
+            ExcludedAppsSection()
             Section {
                 Toggle("Skip passwords and other concealed content", isOn: $ignoresConcealedContent)
             } header: {

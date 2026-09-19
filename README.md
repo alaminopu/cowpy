@@ -9,14 +9,14 @@ Swift with no third-party dependencies, no analytics and no network access.
 ## Features
 
 - History of text, rich text, links, images, PDFs and files
-- ⇧⌘V opens the history at the cursor; press `1`–`9`/`0` to pick
+- ⇧⌘V opens the history at the cursor; press `1`–`9`/`0` to pick. Shortcuts are customisable
 - Pastes straight into the active app
 - Hold a key while choosing a clip: ⌥ plain text · ⇧ pin/unpin · ⌃ remove · ⌃⌥ paste then remove
 - Pinned clips stay at the top and are never trimmed or cleared
 - Snippets: folders of text you paste often, in the menu and on ⇧⌘B, with an
   editor and Clipy-compatible import/export
 - Image thumbnails, file icons, colour swatches, numbered submenus for long histories
-- Skips passwords and other concealed content; choose which kinds of data are recorded
+- Skips passwords and other concealed content; choose which kinds of data are recorded and which apps to ignore
 - History size limit, optional expiry, clear on quit
 - Launch at login; optionally hide the menu-bar icon and use the hotkey only
 

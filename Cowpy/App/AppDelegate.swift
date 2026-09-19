@@ -50,17 +50,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItemController.onShowSettings = { [weak self] in self?.showSettings() }
         statusItemController.onEditSnippets = { [weak self] in self?.showSnippetsEditor() }
 
-        let mainToken = HotKeyCenter.shared.register(.defaultMainMenu) { [weak statusItemController] in
-            statusItemController?.popUpAtCursor()
+        let hotKeys = HotKeyManager.shared
+        hotKeys.handlers[.main] = { [weak statusItemController] combo in
+            statusItemController?.popUpAtCursor(openedWith: combo)
         }
-        if mainToken == nil {
-            log.warning("⇧⌘V is already taken by another app; the history hotkey is disabled.")
+        hotKeys.handlers[.history] = { [weak statusItemController] combo in
+            statusItemController?.popUpAtCursor(openedWith: combo, includesSnippets: false)
         }
-        let snippetsToken = HotKeyCenter.shared.register(.defaultSnippetsMenu) { [weak statusItemController] in
-            statusItemController?.popUpSnippetsAtCursor()
+        hotKeys.handlers[.snippets] = { [weak statusItemController] combo in
+            statusItemController?.popUpSnippetsAtCursor(openedWith: combo)
         }
-        if snippetsToken == nil {
-            log.warning("⇧⌘B is already taken by another app; the snippets hotkey is disabled.")
+        hotKeys.start()
+        for action in hotKeys.unavailable {
+            log.warning("The shortcut for \(action.rawValue, privacy: .public) is taken by another app and is disabled.")
         }
 
         monitor.start()
@@ -74,6 +76,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         removeExpiredClips()
         startExpiryTimer()
         observeSettings()
+
+        // Handy when diagnosing "it stopped pasting": shows whether the grant survived an update.
+        let isTrusted = AccessibilityPermission.isTrusted(prompt: false)
+        log.notice("Accessibility permission granted: \(isTrusted, privacy: .public)")
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -14,6 +14,7 @@ struct SnapshotTests {
     func settingsPanes() throws {
         Defaults.register()
         try snapshot(GeneralSettingsView(), named: "settings-general")
+        try snapshot(ShortcutsSettingsView(), named: "settings-shortcuts")
         try snapshot(MenuSettingsView(), named: "settings-menu")
         try snapshot(HistorySettingsView(), named: "settings-history")
         try snapshot(CaptureSettingsView(), named: "settings-capture")

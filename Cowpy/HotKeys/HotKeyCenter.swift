@@ -2,20 +2,22 @@ import AppKit
 import Carbon.HIToolbox
 
 /// A key plus Carbon modifier flags (`cmdKey`, `shiftKey`, `optionKey`, `controlKey`).
-nonisolated struct KeyCombo: Codable, Equatable, Sendable {
+nonisolated struct KeyCombo: Codable, Hashable, Sendable {
     var keyCode: UInt32
     var carbonModifiers: UInt32
+}
 
-    /// ⇧⌘V, the same default Clipy uses for its main menu.
-    static let defaultMainMenu = KeyCombo(keyCode: UInt32(kVK_ANSI_V), carbonModifiers: UInt32(cmdKey | shiftKey))
-
-    /// ⇧⌘B, Clipy's default for the snippets menu.
-    static let defaultSnippetsMenu = KeyCombo(keyCode: UInt32(kVK_ANSI_B), carbonModifiers: UInt32(cmdKey | shiftKey))
+/// Anything that can register a system-wide hotkey. Exists so tests can
+/// exercise `HotKeyManager` without grabbing real shortcuts.
+protocol HotKeyRegistering: AnyObject {
+    /// Returns a token for `unregister`, or `nil` if the combo could not be registered.
+    func register(_ combo: KeyCombo, handler: @escaping () -> Void) -> UInt32?
+    func unregister(_ token: UInt32)
 }
 
 /// System-wide hotkeys via Carbon's `RegisterEventHotKey`, which is still the
 /// only API for this that needs no Accessibility permission.
-final class HotKeyCenter {
+final class HotKeyCenter: HotKeyRegistering {
     static let shared = HotKeyCenter()
 
     private static let signature: OSType = 0x434F_5750 // 'COWP'
@@ -27,8 +29,6 @@ final class HotKeyCenter {
 
     private init() {}
 
-    /// Returns a token for `unregister`, or `nil` if the combo is already taken system-wide.
-    @discardableResult
     func register(_ combo: KeyCombo, handler: @escaping () -> Void) -> UInt32? {
         installEventHandlerIfNeeded()
 

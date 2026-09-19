@@ -1,8 +1,8 @@
 import AppKit
 
 /// Owns the menu-bar item and builds the menus: the menu-bar menu (clips,
-/// snippets and app commands), the ⇧⌘V pop-up at the cursor (clips and
-/// snippets) and the ⇧⌘B pop-up (snippets only).
+/// snippets and app commands) and the shortcut pop-ups at the cursor (clips
+/// and snippets, clips only, or snippets only).
 final class StatusItemController: NSObject, NSMenuDelegate {
     var onShowSettings: (() -> Void)?
     var onEditSnippets: (() -> Void)?
@@ -14,6 +14,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusMenu = NSMenu()
     private let popUpMenu = NSMenu()
     private let snippetsPopUpMenu = NSMenu()
+
+    /// Modifiers of the shortcut that opened the current pop-up which have not
+    /// been released since. They say nothing about what the user wants to do
+    /// with a clip, so `chooseClip` ignores them.
+    private var leftoverModifiers: NSEvent.ModifierFlags = []
+    private var leftoverTimer: Timer?
 
     init(store: HistoryStore, snippetStore: SnippetStore, pasteService: PasteService) {
         self.store = store
@@ -41,14 +47,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
     }
 
-    func popUpAtCursor() {
-        // The pop-up is for pasting quickly, so it carries no app commands;
-        // Settings and Quit live in the menu-bar menu only.
-        populate(popUpMenu, includesAppCommands: false)
-        popUpMenu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+    /// Pop-ups are for pasting quickly, so they carry no app commands;
+    /// Settings and Quit live in the menu-bar menu only.
+    func popUpAtCursor(openedWith combo: KeyCombo? = nil, includesSnippets: Bool = true) {
+        populate(popUpMenu, includesSnippets: includesSnippets, includesAppCommands: false)
+        popUp(popUpMenu, openedWith: combo)
     }
 
-    func popUpSnippetsAtCursor() {
+    func popUpSnippetsAtCursor(openedWith combo: KeyCombo? = nil) {
         let menu = snippetsPopUpMenu
         menu.removeAllItems()
         if !addSnippetItems(to: menu, withHeader: false) {
@@ -59,18 +65,47 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             // snippets menu would be a dead end.
             menu.addItem(makeItem("Edit Snippets…", action: #selector(editSnippets)))
         }
+        popUp(menu, openedWith: combo)
+    }
+
+    private func popUp(_ menu: NSMenu, openedWith combo: KeyCombo?) {
+        trackLeftoverModifiers(of: combo)
+        // Blocks until the menu closes. The chosen item's action may run after
+        // this returns, so `leftoverModifiers` is left as it is.
         menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+        leftoverTimer?.invalidate()
+        leftoverTimer = nil
+    }
+
+    /// Menu tracking swallows key events, so the modifier state is polled: once
+    /// a modifier is seen released it stops counting as leftover, and pressing
+    /// it again is a deliberate choice.
+    private func trackLeftoverModifiers(of combo: KeyCombo?) {
+        leftoverTimer?.invalidate()
+        leftoverModifiers = (combo?.modifiers ?? []).intersection(NSEvent.modifierFlags)
+        guard !leftoverModifiers.isEmpty else { return }
+
+        let timer = Timer(timeInterval: 0.03, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.leftoverModifiers.formIntersection(NSEvent.modifierFlags)
+            }
+        }
+        // `.common` includes the event-tracking mode menus run in.
+        RunLoop.main.add(timer, forMode: .common)
+        leftoverTimer = timer
     }
 
     // MARK: - NSMenuDelegate
 
     func menuNeedsUpdate(_ menu: NSMenu) {
-        populate(statusMenu, includesAppCommands: true)
+        // Opened with the mouse: no shortcut modifiers to discount.
+        leftoverModifiers = []
+        populate(statusMenu, includesSnippets: true, includesAppCommands: true)
     }
 
     // MARK: - Building
 
-    private func populate(_ menu: NSMenu, includesAppCommands: Bool) {
+    private func populate(_ menu: NSMenu, includesSnippets: Bool, includesAppCommands: Bool) {
         menu.removeAllItems()
 
         let pinned = store.pinned()
@@ -83,7 +118,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         } else {
             addClipItems(pinned: pinned, recent: recent, to: menu)
         }
-        addSnippetItems(to: menu, withHeader: true)
+        if includesSnippets {
+            addSnippetItems(to: menu, withHeader: true)
+        }
         guard includesAppCommands else { return }
 
         menu.addItem(.separator())
@@ -221,7 +258,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func chooseClip(_ sender: NSMenuItem) {
         guard let clip = sender.representedObject as? Clip else { return }
 
-        switch ClipAction(modifiers: NSEvent.modifierFlags) {
+        switch ClipAction(modifiers: NSEvent.modifierFlags, ignoring: leftoverModifiers) {
         case .paste:
             pasteService.paste(clip)
         case .pastePlainText:

@@ -10,11 +10,14 @@ nonisolated enum ClipAction: Equatable, Sendable, CaseIterable {
 
     /// Modifiers must match exactly; any other combination is a normal paste.
     ///
-    /// The history opens with ⇧⌘V, so those keys are often still down when a
-    /// clip is chosen. ⌘ is therefore never a trigger, nothing that removes a
-    /// clip involves ⇧, and a leftover ⇧⌘ pastes normally.
-    init(modifiers: NSEvent.ModifierFlags) {
-        switch modifiers.intersection([.command, .shift, .option, .control]) {
+    /// The pop-up opens with a shortcut (⇧⌘V by default), and those keys are
+    /// often still down when a clip is chosen. Two safeguards keep that from
+    /// triggering anything: `leftover` names the shortcut's modifiers that have
+    /// been held continuously since the menu opened, which are ignored; and
+    /// with the default shortcut ⌘ is never a trigger and nothing that removes
+    /// a clip involves ⇧.
+    init(modifiers: NSEvent.ModifierFlags, ignoring leftover: NSEvent.ModifierFlags = []) {
+        switch modifiers.subtracting(leftover).intersection([.command, .shift, .option, .control]) {
         case [.option]: self = .pastePlainText
         case [.shift]: self = .togglePin
         case [.control]: self = .delete

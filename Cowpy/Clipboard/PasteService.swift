@@ -58,8 +58,8 @@ final class PasteService {
             state: .eventSuppressionStateSuppressionInterval
         )
 
-        // TODO: resolve the key code for "v" from the current keyboard layout (Dvorak etc.).
-        let keyCode = CGKeyCode(kVK_ANSI_V)
+        // "V" is not on the same key in every layout (Dvorak, AZERTY, …).
+        let keyCode = CGKeyCode(KeyboardLayout.keyCode(for: "v", carbonModifiers: UInt32(cmdKey)) ?? UInt32(kVK_ANSI_V))
         let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
         let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
         keyDown?.flags = .maskCommand

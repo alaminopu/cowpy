@@ -47,7 +47,7 @@ main.swift ─ AppDelegate ─┬─ ClipboardMonitor ──(ClipContent)──�
 | Colours | `Menu/ColorSwatch.swift` | `ColorParser` (requires `#` so one-time codes are not mistaken for colours) and the swatch image. |
 | Icon | `Menu/CowIcon.swift` | Template glyph drawn in code. |
 | Snippets | `Snippets/` | `SnippetStore` (separate SwiftData container), `SnippetArchive` (Clipy-compatible XML), `SnippetsEditorView` (SwiftUI, `@Query` + `@Bindable` straight onto the models). |
-| Hotkeys | `HotKeys/HotKeyCenter.swift` | `RegisterEventHotKey`; no permission required. |
+| Hotkeys | `HotKeys/` | `HotKeyCenter` wraps `RegisterEventHotKey` (no permission required). `HotKeyManager` owns the user's choices, persistence and conflicts, and talks to the centre through `HotKeyRegistering` so tests use a fake. `KeyboardLayout` translates key codes for the current layout. |
 | Preferences | `App/Defaults.swift`, `Settings/` | One set of keys shared by services (`Defaults`) and views (`@AppStorage`). |
 
 ## Roadmap
@@ -61,7 +61,7 @@ main.swift ─ AppDelegate ─┬─ ClipboardMonitor ──(ClipContent)──�
 - [x] Skip concealed/transient pasteboard content
 - [x] Menu, hotkey and auto-paste verified on a real desktop session
 - [x] Hotkey pop-up shows clips only; Settings and Quit live in the menu-bar menu
-- [ ] Layout-aware key code for "v" (Dvorak, AZERTY) — `UCKeyTranslate` over the current input source
+- [x] Layout-aware key code for "v" (done in M4)
 
 ### M2 — Menu polish (built, needs a hands-on check)
 - [x] Colour swatch for `#rgb[a]`, `#rrggbb[aa]`, `rgb()` / `rgba()` strings
@@ -84,9 +84,15 @@ main.swift ─ AppDelegate ─┬─ ClipboardMonitor ──(ClipContent)──�
 - [ ] **Manually verify** the editor, both pop-ups and an import from Clipy
 - [ ] Placeholders in snippets (date, clipboard contents, cursor position)
 
-### M4 — Shortcuts & exclusions
-- [ ] Shortcut recorder UI; separate combos for main / history / snippets / per-folder
-- [ ] Excluded-apps editor (storage and check already exist: `excludedBundleIDs`)
+### M4 — Shortcuts & exclusions (built, needs a hands-on check)
+- [x] Shortcut recorder in Settings → Shortcuts; shortcuts pause while recording so the old one cannot fire
+- [x] Separate shortcuts for clips + snippets (⇧⌘V), clips only (none by default) and snippets only (⇧⌘B)
+- [x] Conflict handling: a combo used by another Cowpy action is refused, one the system refuses keeps the old shortcut, a cleared shortcut stays cleared across launches
+- [x] Modifiers still held from the shortcut are ignored when a clip is chosen, so a custom shortcut such as ⌃⌥C cannot trigger "paste then remove"
+- [x] Layout-aware key names and ⌘V synthesis (Dvorak, AZERTY, "Dvorak – QWERTY ⌘")
+- [x] Ignored-apps editor in Settings → Capture (running apps, or choose from Applications)
+- [ ] **Manually verify** recording a shortcut, the leftover-modifier behaviour and an ignored app
+- [ ] Per-snippet-folder shortcuts
 
 ### M5 — Search
 - [ ] Type-to-filter panel (floating `NSPanel` + SwiftUI list) as an alternative to the menu
