@@ -7,7 +7,7 @@ cask "cowpy" do
   desc "Small native clipboard manager with history, snippets and search"
   homepage "https://github.com/alaminopu/cowpy"
 
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "Cowpy.app"
 
@@ -15,9 +15,11 @@ cask "cowpy" do
   # Gatekeeper would refuse to open the quarantined download. It is built from
   # the public source in this repository; removing the flag is the equivalent
   # of right-click > Open.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Cowpy.app"]
+  postflight_steps do
+    # Not an error if the flag is already absent (e.g. quarantine disabled).
+    run "/usr/bin/xattr",
+        args:         ["-dr", "com.apple.quarantine", "{{appdir}}/Cowpy.app"],
+        must_succeed: false
   end
 
   uninstall quit: "com.alamin.Cowpy"

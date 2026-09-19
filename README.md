@@ -33,6 +33,7 @@ With [Homebrew](https://brew.sh):
 
 ```sh
 brew tap alaminopu/cowpy https://github.com/alaminopu/cowpy
+brew trust --cask alaminopu/cowpy/cowpy   # Homebrew 7+ asks you to approve third-party casks
 brew install --cask cowpy
 ```
 
