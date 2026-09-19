@@ -1,6 +1,6 @@
 cask "cowpy" do
   version "0.1.0"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  sha256 "594742f1d342c764d8069935ace292ae957259601a6f150fe551ac22ee5bc3d1"
 
   url "https://github.com/alaminopu/cowpy/releases/download/v#{version}/Cowpy-#{version}.dmg"
   name "Cowpy"
